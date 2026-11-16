@@ -23,6 +23,8 @@
         <strong>Bill to:</strong>
         {{ $sale->customer?->name ?? 'Walk-in customer' }}
         @if ($sale->customer?->phone)<span class="muted"> — {{ $sale->customer->phone }}</span>@endif
+        @if ($sale->customer?->tin)<br><span class="muted">TIN: {{ $sale->customer->tin }}</span>@endif
+        @if ($sale->customer?->vat_number)<span class="muted"> · VRN: {{ $sale->customer->vat_number }}</span>@endif
     </p>
 
     <table class="data">

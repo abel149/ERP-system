@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\NonConformityController;
+use App\Http\Controllers\PackagingTypeController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProductController;
@@ -75,6 +76,7 @@ Route::middleware('auth')->group(function () {
     // ---------------------------------------------------------------- Inventory / Products
     Route::middleware('role:admin,inventory')->group(function () {
         Route::resource('categories', CategoryController::class)->except(['create', 'show']);
+        Route::resource('packaging-types', PackagingTypeController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
         Route::resource('products', ProductController::class)->except(['show']);
         Route::get('products/{product}/adjust', [ProductController::class, 'adjust'])->name('products.adjust');
         Route::post('products/{product}/adjust', [ProductController::class, 'storeAdjustment'])->name('products.adjust.store');

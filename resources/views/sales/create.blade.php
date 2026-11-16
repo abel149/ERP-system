@@ -30,16 +30,16 @@
         </div>
         <div class="form-row">
             <div class="field">
-                <label for="pad_type">Pad type *</label>
+                <label for="pad_type">Pad/FS type *</label>
                 <select id="pad_type" name="pad_type" required>
-                    @foreach (['GRV', 'GRH', 'GRS'] as $type)
+                    @foreach (['GRV', 'GIV', 'RMI', 'RMR', 'SMI','SMR','FGI','FGR'] as $type)
                         <option value="{{ $type }}" @selected(old('pad_type', 'GRV') === $type)>{{ $type }}</option>
                     @endforeach
                 </select>
                 @error('pad_type')<div class="error">{{ $message }}</div>@enderror
             </div>
             <div class="field">
-                <label for="pad_number">Pad number *</label>
+                <label for="pad_number">Pad/FS number *</label>
                 <input type="text" id="pad_number" name="pad_number" maxlength="100" value="{{ old('pad_number') }}" placeholder="e.g. OF/BIP/CD/026" required>
                 @error('pad_number')<div class="error">{{ $message }}</div>@enderror
             </div>

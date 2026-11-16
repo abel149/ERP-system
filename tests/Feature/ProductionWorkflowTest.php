@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Issue;
+use App\Models\PackagingType;
 use App\Models\Product;
 use App\Models\Production;
 use App\Models\RawMaterial;
@@ -169,6 +170,102 @@ class ProductionWorkflowTest extends TestCase
         $this->actingAs($manager)->post("/productions/{$batch->id}/complete")->assertRedirect();
 
         $this->assertEqualsWithDelta(555.55, (float) $fg->fresh()->sell_price, 0.001);
+    }
+
+    public function test_packaging_type_prices_packing_by_exact_count(): void
+    {
+        $tea = $this->material('Tea', 100, 50); // 100 kg @ 50 = 5,000
+        $fg = Product::create(['name' => 'Tea bulk', 'sku' => 'TB', 'cost_price' => 0,
+            'sell_price' => 0, 'quantity' => 0, 'is_active' => true]);
+        $bag = PackagingType::create(['name' => '5 kg bag', 'capacity_kg' => 5, 'unit_cost' => 250, 'is_active' => true]);
+        $manager = User::factory()->create(['role' => 'production']);
+        $this->actingAs(User::factory()->create(['role' => 'inventory']))->post('/issues', [
+            'items' => [['raw_material_id' => $tea->id, 'quantity' => 100]],
+            'pad_type' => 'GRV', 'pad_number' => 'P-1',
+        ]);
+
+        // 97 kg in 5 kg bags = 19.4 packs exactly -> 19.4 x 250 = 4,850
+        $this->actingAs($manager)->post('/productions', [
+            'issue_ids' => [Issue::first()->id], 'product_id' => $fg->id,
+            'output_quantity' => 97, 'non_conforming' => 3,
+            'packaging_type_id' => $bag->id,
+            'pad_type' => 'GRV', 'pad_number' => 'P-2',
+        ])->assertRedirect();
+
+        $batch = Production::firstOrFail();
+        $this->assertSame($bag->id, $batch->packaging_type_id);
+        $this->assertEqualsWithDelta(19.4, (float) $batch->package_count, 0.001);
+        $this->assertEqualsWithDelta(4850.0, (float) $batch->packing_cost, 0.01);
+        // Packing folds into the batch cost shared by output + NC
+        $this->assertEqualsWithDelta(5000 + 4850, (float) $batch->total_direct_cost, 0.01);
+    }
+
+    public function test_rework_packaging_uses_recovered_output(): void
+    {
+        $tea = $this->material('Tea', 100, 50);
+        $fg = Product::create(['name' => 'Tea bulk', 'sku' => 'TB', 'cost_price' => 0,
+            'sell_price' => 0, 'quantity' => 0, 'is_active' => true]);
+        $sack = PackagingType::create(['name' => '50 kg sack', 'capacity_kg' => 50, 'unit_cost' => 2500, 'is_active' => true]);
+        $manager = User::factory()->create(['role' => 'production']);
+        $this->actingAs(User::factory()->create(['role' => 'inventory']))->post('/issues', [
+            'items' => [['raw_material_id' => $tea->id, 'quantity' => 100]],
+            'pad_type' => 'GRV', 'pad_number' => 'P-1',
+        ]);
+        $this->actingAs($manager)->post('/productions', [
+            'issue_ids' => [Issue::first()->id], 'product_id' => $fg->id,
+            'output_quantity' => 80, 'non_conforming' => 20, 'packing_cost' => 0,
+            'pad_type' => 'GRV', 'pad_number' => 'P-2',
+        ]);
+        $batch = Production::firstOrFail();
+        $this->actingAs($manager)->post("/productions/{$batch->id}/complete");
+
+        // 15 kg recovered in 50 kg sacks = 0.3 pack -> 0.3 x 2500 = 750
+        $this->actingAs($manager)->post("/productions/{$batch->id}/rework", [
+            'rework_output' => 15, 'rework_nc' => 5,
+            'rework_packaging_type_id' => $sack->id,
+            'nc_product_name' => 'Tea NC', 'nc_sell_price' => 10,
+        ])->assertRedirect("/productions/{$batch->id}");
+
+        $batch->refresh();
+        $this->assertSame($sack->id, $batch->rework_packaging_type_id);
+        $this->assertEqualsWithDelta(0.3, (float) $batch->rework_package_count, 0.001);
+        $this->assertEqualsWithDelta(750.0, (float) $batch->rework_packing_cost, 0.01);
+    }
+
+    public function test_packaging_types_managed_by_admin_and_inventory(): void
+    {
+        $inventory = User::factory()->create(['role' => 'inventory']);
+        $production = User::factory()->create(['role' => 'production']);
+
+        $this->actingAs($inventory)->get('/packaging-types')->assertOk();
+        $this->actingAs($inventory)->post('/packaging-types', [
+            'name' => '10 kg bag', 'capacity_kg' => 10, 'unit_cost' => 500,
+        ])->assertRedirect();
+        $this->assertDatabaseHas('packaging_types', ['name' => '10 kg bag', 'capacity_kg' => '10.00']);
+
+        $this->actingAs($production)->get('/packaging-types')->assertForbidden();
+        $this->actingAs($production)->post('/packaging-types', [
+            'name' => 'Bad', 'capacity_kg' => 1, 'unit_cost' => 1,
+        ])->assertForbidden();
+        $this->assertSame(1, PackagingType::count());
+    }
+
+    public function test_packaging_cost_survives_later_type_price_changes(): void
+    {
+        $bag = PackagingType::create(['name' => '5 kg bag', 'capacity_kg' => 5, 'unit_cost' => 250, 'is_active' => true]);
+        $batch = Production::create([
+            'production_number' => 'PR-T1', 'status' => 'completed',
+            'pad_type' => 'GRV', 'pad_number' => 'P-1',
+            'material_cost' => 1000, 'packing_cost' => 4850,
+            'packaging_type_id' => $bag->id, 'package_count' => 19.4,
+            'output_quantity' => 97, 'non_conforming' => 3,
+        ]);
+
+        $bag->update(['unit_cost' => 999]); // supplier price changes later
+
+        $batch->refresh();
+        $this->assertEqualsWithDelta(4850.0, (float) $batch->packing_cost, 0.01);
+        $this->assertEqualsWithDelta(19.4, (float) $batch->package_count, 0.001);
     }
 
     public function test_output_plus_nc_cannot_exceed_input(): void
