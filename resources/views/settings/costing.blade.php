@@ -40,7 +40,7 @@
             </div>
         </div>
         <p class="hint" style="margin-top:12px">
-            Charged per stock unit (per pack or per kg). Derive them from your monthly overheads
+            Charged per kg of product sold. Derive them from your monthly overheads
             (rent, utilities, admin, security, direct labour &divide; monthly output) — the four
             values prefill each item row on a sales order and can be adjusted per order or per item.
         </p>
