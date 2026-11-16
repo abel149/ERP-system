@@ -15,6 +15,18 @@
     <input type="email" id="email" name="email" value="{{ old('email', $customer->email ?? '') }}">
     @error('email')<div class="error">{{ $message }}</div>@enderror
 </div>
+<div class="form-row">
+    <div class="field">
+        <label for="tin">TIN</label>
+        <input type="text" id="tin" name="tin" value="{{ old('tin', $customer->tin ?? '') }}" placeholder="Taxpayer ID number">
+        @error('tin')<div class="error">{{ $message }}</div>@enderror
+    </div>
+    <div class="field">
+        <label for="vat_number">VAT / VRN No.</label>
+        <input type="text" id="vat_number" name="vat_number" value="{{ old('vat_number', $customer->vat_number ?? '') }}" placeholder="VAT registration number">
+        @error('vat_number')<div class="error">{{ $message }}</div>@enderror
+    </div>
+</div>
 <div class="field">
     <label for="address">Address</label>
     <input type="text" id="address" name="address" value="{{ old('address', $customer->address ?? '') }}">

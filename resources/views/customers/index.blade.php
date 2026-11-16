@@ -15,7 +15,7 @@
 <div class="filter-bar mb-2">
     <form method="GET" class="inline-form">
         <div class="field">
-            <input type="text" name="search" placeholder="Name, email or phone..." value="{{ request('search') }}" style="width:260px;">
+            <input type="text" name="search" placeholder="Name, email, phone or TIN..." value="{{ request('search') }}" style="width:260px;">
         </div>
         <button type="submit" class="btn">Search</button>
         @if(request('search'))<a href="{{ route('customers.index') }}" class="btn">Clear</a>@endif
@@ -26,12 +26,14 @@
     <div class="table-wrap">
         <table class="tbl">
             <thead>
-                <tr><th>Name</th><th>Email</th><th>Phone</th><th>Sales</th><th></th></tr>
+                <tr><th>Name</th><th>TIN</th><th>VAT / VRN</th><th>Email</th><th>Phone</th><th>Sales</th><th></th></tr>
             </thead>
             <tbody>
             @forelse($customers as $c)
             <tr>
                 <td class="strong">{{ $c->name }}</td>
+                <td class="muted">{{ $c->tin ?: '—' }}</td>
+                <td class="muted">{{ $c->vat_number ?: '—' }}</td>
                 <td class="muted">{{ $c->email ?: '—' }}</td>
                 <td class="muted">{{ $c->phone ?: '—' }}</td>
                 <td><span class="badge badge-blue">{{ $c->sales_count }}</span></td>
@@ -45,7 +47,7 @@
                 </td>
             </tr>
             @empty
-            <tr><td colspan="5" class="muted" style="padding:24px;text-align:center;">No customers. <a href="{{ route('customers.create') }}">Add one</a>.</td></tr>
+            <tr><td colspan="7" class="muted" style="padding:24px;text-align:center;">No customers. <a href="{{ route('customers.create') }}">Add one</a>.</td></tr>
             @endforelse
             </tbody>
         </table>

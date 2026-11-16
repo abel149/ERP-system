@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Attendance;
 use App\Models\Customer;
+use App\Models\PackagingType;
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\Product;
@@ -165,6 +166,14 @@ class DatabaseSeeder extends Seeder
         // ── Costing defaults (sales order pricing) ────────────
         foreach (Costing::DEFAULTS as $key => $value) {
             Setting::firstOrCreate(['key' => "costing.$key"], ['value' => $value]);
+        }
+
+        // ── Packaging types (workbook packing rate ≈ 50 ETB/kg) ──
+        foreach ([5, 10, 25, 50, 100] as $kg) {
+            PackagingType::firstOrCreate(
+                ['capacity_kg' => $kg],
+                ['name' => "{$kg} kg bag", 'unit_cost' => $kg * 50]
+            );
         }
 
         // ── Attendance (this month) ────────────────────────────
