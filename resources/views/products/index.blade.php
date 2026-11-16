@@ -35,8 +35,8 @@
         <table class="tbl">
             <thead>
                 <tr><th>Product</th><th>SKU</th><th>Category</th>
-                    <th class="text-right">Cost</th><th class="text-right">Price</th>
-                    <th class="text-right">Margin</th><th>Stock</th><th>Status</th><th></th></tr>
+                    <th class="text-right">Cost</th>
+                    <th>Stock</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
             @forelse($products as $product)
@@ -46,9 +46,7 @@
                 <td class="muted">{{ $product->sku }}</td>
                 <td class="muted">{{ $product->category?->name ?? '—' }}</td>
                 <td class="text-right">${{ number_format($product->cost_price,2) }}</td>
-                <td class="text-right">${{ number_format($product->sell_price,2) }}</td>
-                <td class="text-right"><span class="badge badge-blue">{{ $margin }}%</span></td>
-                <td>
+               <td>
                     <span class="badge {{ $product->quantity == 0 ? 'badge-red' : ($product->is_low_stock ? 'badge-amber' : 'badge-green') }}">
                         {{ $product->quantity_display }}
                     </span>

@@ -162,8 +162,14 @@
             <h2>Cost breakdown</h2>
             <div class="summary-line"><span class="muted">Material</span><strong>{{ number_format($production->material_cost, 2) }}</strong></div>
             <div class="summary-line"><span class="muted">Packing &amp; label</span><strong>{{ number_format($production->packing_cost, 2) }}</strong></div>
+            @if($production->packagingType)
+            <p class="form-hint" style="margin-top:-6px">{{ $production->packagingType->name }} · {{ rtrim(rtrim(number_format((float) $production->package_count, 2), '0'), '.') }} pk × {{ number_format((float) $production->package_count > 0 ? $production->packing_cost / (float) $production->package_count : 0, 2) }}</p>
+            @endif
             @if($production->rework_completed_at)
             <div class="summary-line"><span class="muted">Rework packing</span><strong>{{ number_format($production->rework_packing_cost, 2) }}</strong></div>
+            @if($production->reworkPackagingType)
+            <p class="form-hint" style="margin-top:-6px">{{ $production->reworkPackagingType->name }} · {{ rtrim(rtrim(number_format((float) $production->rework_package_count, 2), '0'), '.') }} pk × {{ number_format((float) $production->rework_package_count > 0 ? $production->rework_packing_cost / (float) $production->rework_package_count : 0, 2) }}</p>
+            @endif
             @endif
             <div class="summary-line summary-total"><span>Total · ETB</span><strong>{{ number_format($production->total_batch_cost, 2) }}</strong></div>
 

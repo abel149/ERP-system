@@ -121,8 +121,30 @@
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:6px">
-                    <label class="form-label" for="packingCost">Packing &amp; label cost for this batch (ETB) *</label>
-                    <input class="form-control" id="packingCost" name="packing_cost" type="number" min="0" step="0.01" value="{{ old('packing_cost', 0) }}" required>
+                    <label class="form-label" for="packType">Packaging type</label>
+                    <select class="form-control" id="packType" name="packaging_type_id">
+                        <option value="">Manual entry / none</option>
+                        @foreach($packaging as $t)
+                        <option value="{{ $t->id }}" data-cap="{{ (float) $t->capacity_kg }}" data-cost="{{ (float) $t->unit_cost }}" @selected(old('packaging_type_id') == $t->id)>
+                            {{ $t->name }} — {{ rtrim(rtrim(number_format((float) $t->capacity_kg, 2), '0'), '.') }} kg × {{ number_format((float) $t->unit_cost, 2) }} ETB
+                        </option>
+                        @endforeach
+                    </select>
+                    <p class="form-hint" id="packingHint">Pick a type: packing cost = (clean output kg &divide; capacity) &times; cost per package. Or leave on manual and type the total.</p>
+                    @error('packaging_type_id')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div class="fields">
+                    <div class="form-group" id="packCountWrap" hidden>
+                        <label class="form-label" for="packCount">Package count</label>
+                        <input class="form-control" id="packCount" name="package_count" type="number" min="0.01" step="0.01" value="{{ old('package_count') }}" placeholder="auto">
+                        <p class="form-hint">Auto = output &divide; capacity. Edit if the real count differs.</p>
+                        @error('package_count')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="packingCost">Packing &amp; label cost (ETB) *</label>
+                        <input class="form-control" id="packingCost" name="packing_cost" type="number" min="0" step="0.01" value="{{ old('packing_cost', 0) }}" required>
+                        @error('packing_cost')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
                 </div>
             </div>
         </section>
@@ -193,7 +215,30 @@
     function update() {
         let input = 0, material = 0;
         form.querySelectorAll('[name="issue_ids[]"]:checked').forEach(cb => { input += n(cb.dataset.weight); material += n(cb.dataset.cost); });
-        const out = n($('outputQuantity').value), nc = n($('ncQuantity').value), pack = n($('packingCost').value);
+        const out = n($('outputQuantity').value), nc = n($('ncQuantity').value);
+
+        // Packaging: selected type → count = output / capacity, cost = count x unit.
+        const packOpt = $('packType').selectedOptions[0];
+        const hasPack = packOpt && packOpt.value !== '';
+        $('packCountWrap').hidden = !hasPack;
+        $('packingCost').readOnly = hasPack;
+        let pack;
+        if (hasPack) {
+            const cap = n(packOpt.dataset.cap), unit = n(packOpt.dataset.cost);
+            if (cap > 0 && !$('packCount').dataset.touched) {
+                $('packCount').value = out > 0 ? (out / cap).toFixed(2) : '';
+            }
+            const count = n($('packCount').value);
+            pack = count * unit;
+            $('packingCost').value = pack.toFixed(2);
+            $('packingHint').textContent = count > 0
+                ? count + ' package' + (count === 1 ? '' : 's') + ' x ' + fmt(unit) + ' ETB = ' + fmt(pack) + ' ETB.'
+                : 'Package count = clean output ÷ capacity.';
+        } else {
+            pack = n($('packingCost').value);
+            $('packingHint').textContent = 'Pick a type: packing cost = (clean output kg ÷ capacity) × cost per package. Or leave on manual and type the total.';
+        }
+
         const measured = $('outputQuantity').value !== '' && $('ncQuantity').value !== '';
         const loss = input - out - nc, over = measured && loss < -0.0001;
 
@@ -227,6 +272,7 @@
         else { sp.className = 'notice success'; sp.textContent = fmt(out) + ' kg will be received into stock (finished goods are counted in kg).'; }
     }
     $('productId').addEventListener('change', e => e.target.dataset.touched = 1);
+    $('packCount').addEventListener('input', e => e.target.dataset.touched = 1);
     form.addEventListener('input', update);
     form.addEventListener('change', update);
     update();

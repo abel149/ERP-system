@@ -37,8 +37,30 @@
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:6px">
-                    <label class="form-label" for="reworkPacking">Rework packing &amp; label cost (ETB) *</label>
-                    <input class="form-control" id="reworkPacking" name="rework_packing_cost" type="number" min="0" step="0.01" value="{{ old('rework_packing_cost', 0) }}" required>
+                    <label class="form-label" for="reworkPackType">Packaging type</label>
+                    <select class="form-control" id="reworkPackType" name="rework_packaging_type_id">
+                        <option value="">Manual entry / none</option>
+                        @foreach($packaging as $t)
+                        <option value="{{ $t->id }}" data-cap="{{ (float) $t->capacity_kg }}" data-cost="{{ (float) $t->unit_cost }}" @selected(old('rework_packaging_type_id') == $t->id)>
+                            {{ $t->name }} — {{ rtrim(rtrim(number_format((float) $t->capacity_kg, 2), '0'), '.') }} kg × {{ number_format((float) $t->unit_cost, 2) }} ETB
+                        </option>
+                        @endforeach
+                    </select>
+                    <p class="form-hint" id="reworkPackingHint">Applies to the recovered output — count = recovered kg ÷ capacity.</p>
+                    @error('rework_packaging_type_id')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div class="fields">
+                    <div class="form-group" id="reworkPackCountWrap" hidden>
+                        <label class="form-label" for="reworkPackCount">Package count</label>
+                        <input class="form-control" id="reworkPackCount" name="rework_package_count" type="number" min="0.01" step="0.01" value="{{ old('rework_package_count') }}" placeholder="auto">
+                        <p class="form-hint">Auto = recovered &divide; capacity.</p>
+                        @error('rework_package_count')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="reworkPacking">Rework packing &amp; label cost (ETB) *</label>
+                        <input class="form-control" id="reworkPacking" name="rework_packing_cost" type="number" min="0" step="0.01" value="{{ old('rework_packing_cost', 0) }}" required>
+                        @error('rework_packing_cost')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
                 </div>
                 <div class="notice" id="balanceMessage" role="status">Enter both weights.</div>
             </div>
@@ -117,7 +139,29 @@
     const input = n(form.dataset.input), carried = n(form.dataset.value);
 
     function update() {
-        const rec = n($('reworkOutput').value), nc = n($('reworkNc').value), pack = n($('reworkPacking').value);
+        const rec = n($('reworkOutput').value), nc = n($('reworkNc').value);
+
+        const packOpt = $('reworkPackType').selectedOptions[0];
+        const hasPack = packOpt && packOpt.value !== '';
+        $('reworkPackCountWrap').hidden = !hasPack;
+        $('reworkPacking').readOnly = hasPack;
+        let pack;
+        if (hasPack) {
+            const cap = n(packOpt.dataset.cap), unit = n(packOpt.dataset.cost);
+            if (cap > 0 && !$('reworkPackCount').dataset.touched) {
+                $('reworkPackCount').value = rec > 0 ? (rec / cap).toFixed(2) : '';
+            }
+            const count = n($('reworkPackCount').value);
+            pack = count * unit;
+            $('reworkPacking').value = pack.toFixed(2);
+            $('reworkPackingHint').textContent = count > 0
+                ? count + ' package' + (count === 1 ? '' : 's') + ' x ' + fmt(unit) + ' ETB = ' + fmt(pack) + ' ETB.'
+                : 'Package count = recovered kg ÷ capacity.';
+        } else {
+            pack = n($('reworkPacking').value);
+            $('reworkPackingHint').textContent = 'Applies to the recovered output — count = recovered kg ÷ capacity.';
+        }
+
         const measured = $('reworkOutput').value !== '' && $('reworkNc').value !== '';
         const loss = input - rec - nc, over = measured && loss < -0.0001;
         $('reworkOutput').setCustomValidity(over ? 'Recovered + final NC is more than the NC sent to rework.' : '');
@@ -147,6 +191,7 @@
         if (existing && !$('ncPrice').dataset.touched) $('ncPrice').value = $('ncProduct').selectedOptions[0].dataset.price;
     }
     $('ncPrice').addEventListener('input', e => e.target.dataset.touched = 1);
+    $('reworkPackCount').addEventListener('input', e => e.target.dataset.touched = 1);
     form.addEventListener('input', update);
     form.addEventListener('change', update);
     update();
