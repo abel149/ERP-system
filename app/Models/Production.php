@@ -20,8 +20,10 @@ class Production extends Model
         'product_id', 'production_number', 'status', 'batch_type',
         'input_quantity', 'input_unit',
         'output_quantity', 'non_conforming', 'impurity', 'purity',
-        'material_cost', 'packing_cost', 'cost_per_unit', 'stock_quantity', 'nc_value',
-        'rework_output', 'rework_nc', 'rework_packing_cost', 'rework_cost_per_unit',
+        'material_cost', 'packing_cost', 'packaging_type_id', 'package_count',
+        'cost_per_unit', 'stock_quantity', 'nc_value',
+        'rework_output', 'rework_nc', 'rework_packing_cost', 'rework_packaging_type_id',
+        'rework_package_count', 'rework_cost_per_unit',
         'rework_stock_quantity', 'nc_product_id', 'rework_notes',
         'fg_posted_at', 'rework_completed_at',
         'pad_type', 'pad_number', 'description',
@@ -35,12 +37,14 @@ class Production extends Model
         'purity'                => 'decimal:4',
         'material_cost'         => 'decimal:2',
         'packing_cost'          => 'decimal:2',
+        'package_count'         => 'decimal:2',
         'cost_per_unit'         => 'decimal:4',
         'stock_quantity'        => 'decimal:2',
         'nc_value'              => 'decimal:2',
         'rework_output'         => 'decimal:2',
         'rework_nc'             => 'decimal:2',
         'rework_packing_cost'   => 'decimal:2',
+        'rework_package_count'  => 'decimal:2',
         'rework_cost_per_unit'  => 'decimal:4',
         'rework_stock_quantity' => 'decimal:2',
         'fg_posted_at'          => 'datetime',
@@ -62,6 +66,16 @@ class Production extends Model
     public function ncProduct(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'nc_product_id');
+    }
+
+    public function packagingType(): BelongsTo
+    {
+        return $this->belongsTo(PackagingType::class);
+    }
+
+    public function reworkPackagingType(): BelongsTo
+    {
+        return $this->belongsTo(PackagingType::class, 'rework_packaging_type_id');
     }
 
     /** Issues consumed in this batch */
