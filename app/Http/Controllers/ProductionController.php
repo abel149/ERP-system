@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Issue;
 use App\Models\NonConformity;
+use App\Models\PackagingType;
 use App\Models\Product;
 use App\Models\Production;
 use App\Support\Costing;
@@ -41,9 +42,10 @@ class ProductionController extends Controller
         $available = Issue::where('status', 'issued')->whereDoesntHave('productionItem')
             ->with(['items.rawMaterial', 'intendedProduct'])->latest()->get();
         $products = Product::where('is_active', true)->where('is_nc', false)->orderBy('name')->get();
+        $packaging = PackagingType::where('is_active', true)->orderBy('capacity_kg')->get();
         $preselected = $request->filled('issue_id') ? [(int) $request->input('issue_id')] : [];
 
-        return view('productions.create', compact('available', 'products', 'preselected'));
+        return view('productions.create', compact('available', 'products', 'packaging', 'preselected'));
     }
 
     /** Step 1 — manager submits the measured clean output and NC. Nothing moves in stock yet. */
@@ -56,7 +58,9 @@ class ProductionController extends Controller
             'new_product_name' => ['nullable', 'required_without:product_id', 'string', 'max:200'],
             'output_quantity'  => ['required', 'numeric', 'min:0'],
             'non_conforming'   => ['required', 'numeric', 'min:0'],
-            'packing_cost'     => ['required', 'numeric', 'min:0'],
+            'packaging_type_id' => ['nullable', 'exists:packaging_types,id'],
+            'package_count'    => ['nullable', 'numeric', 'min:0.01'],
+            'packing_cost'     => ['required_without:packaging_type_id', 'nullable', 'numeric', 'min:0'],
             'pad_type'         => ['required', 'in:GRV,GRH,GRS'],
             'pad_number'       => ['required', 'string', 'max:100'],
             'description'      => ['nullable', 'string', 'max:2000'],
@@ -96,6 +100,17 @@ class ProductionController extends Controller
                 'is_nc'           => false,
             ])->id;
 
+            // Packaging: the clean output is what gets packed — count = output kg
+            // divided by the package capacity (exact fraction), cost = count x unit.
+            $packType = ! empty($data['packaging_type_id'])
+                ? PackagingType::findOrFail($data['packaging_type_id']) : null;
+            $packageCount = $packType
+                ? (isset($data['package_count']) ? (float) $data['package_count'] : $packType->packsFor($output))
+                : null;
+            $packingCost = $packType
+                ? $packType->costFor($output, $packageCount)
+                : (float) $data['packing_cost'];
+
             $production = Production::create([
                 'product_id'        => $productId,
                 'production_number' => Production::nextProductionNumber(),
@@ -108,7 +123,9 @@ class ProductionController extends Controller
                 'purity'            => round($output / $input, 4),
                 'impurity'          => round($nc / $input, 4),
                 'material_cost'     => round($issues->sum(fn ($i) => $i->total_value), 2),
-                'packing_cost'      => $data['packing_cost'],
+                'packing_cost'      => $packingCost,
+                'packaging_type_id' => $packType?->id,
+                'package_count'     => $packageCount,
                 'pad_type'          => $data['pad_type'],
                 'pad_number'        => $data['pad_number'],
                 'description'       => $data['description'] ?? null,
@@ -199,8 +216,9 @@ class ProductionController extends Controller
         }
         $production->load(['items.issue', 'product']);
         $ncProducts = Product::where('is_nc', true)->where('is_active', true)->orderBy('name')->get();
+        $packaging = PackagingType::where('is_active', true)->orderBy('capacity_kg')->get();
 
-        return view('productions.rework', compact('production', 'ncProducts'));
+        return view('productions.rework', compact('production', 'ncProducts', 'packaging'));
     }
 
     /**
@@ -212,7 +230,9 @@ class ProductionController extends Controller
         $data = $request->validate([
             'rework_output'       => ['required', 'numeric', 'min:0'],
             'rework_nc'           => ['required', 'numeric', 'min:0'],
-            'rework_packing_cost' => ['required', 'numeric', 'min:0'],
+            'rework_packaging_type_id' => ['nullable', 'exists:packaging_types,id'],
+            'rework_package_count'     => ['nullable', 'numeric', 'min:0.01'],
+            'rework_packing_cost' => ['required_without:rework_packaging_type_id', 'nullable', 'numeric', 'min:0'],
             'nc_product_id'       => ['nullable', Rule::exists('products', 'id')->where('is_nc', 1)],
             'nc_product_name'     => ['nullable', 'string', 'max:200'],
             'nc_sell_price'       => ['nullable', 'numeric', 'min:0'],
@@ -240,8 +260,18 @@ class ProductionController extends Controller
                     throw ValidationException::withMessages(['nc_sell_price' => 'Set the selling price for the new NC product.']);
                 }
 
+                // Recovered output is what gets packed; final NC stays loose.
+                $packType = ! empty($data['rework_packaging_type_id'])
+                    ? PackagingType::findOrFail($data['rework_packaging_type_id']) : null;
+                $packCount = $packType
+                    ? (isset($data['rework_package_count']) ? (float) $data['rework_package_count'] : $packType->packsFor($recovered))
+                    : null;
+                $reworkPacking = $packType
+                    ? $packType->costFor($recovered, $packCount)
+                    : (float) $data['rework_packing_cost'];
+
                 // Cost waiting in the NC + the rework's own packing, shared by weight.
-                $pool   = (float) $production->nc_value + (float) $data['rework_packing_cost'];
+                $pool   = (float) $production->nc_value + $reworkPacking;
                 $costKg = $recovered + $finalNc > 0 ? $pool / ($recovered + $finalNc) : 0;
                 $units = null;
                 $unitCost = null;
@@ -287,7 +317,9 @@ class ProductionController extends Controller
                     'status'                => 'completed',
                     'rework_output'         => $recovered,
                     'rework_nc'             => $finalNc,
-                    'rework_packing_cost'   => $data['rework_packing_cost'],
+                    'rework_packing_cost'   => $reworkPacking,
+                    'rework_packaging_type_id' => $packType?->id,
+                    'rework_package_count'  => $packCount,
                     'rework_stock_quantity' => $units,
                     'rework_cost_per_unit'  => $unitCost,
                     'nc_product_id'         => $ncProductId,
