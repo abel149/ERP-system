@@ -8,7 +8,9 @@
         <p>{{ $sales->total() }} total transaction(s)</p>
     </div>
     <div class="page-header-actions">
-        <a href="{{ route('reports.sales') }}" class="btn">View Report</a>
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('reports.sales') }}" class="btn">View Report</a>
+        @endif
         <a href="{{ route('sales.create') }}" class="btn btn-primary">+ New Sale</a>
     </div>
 </div>

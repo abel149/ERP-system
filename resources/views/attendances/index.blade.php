@@ -67,7 +67,7 @@
             <tbody>
             @forelse($attendances as $att)
             <tr>
-                <td class="strong">{{ $att->employee->full_name }}</td>
+                <td class="strong">{{ $att->employee?->full_name ?? '—' }}</td>
                 <td class="muted">{{ $att->date->format('M j, Y') }}</td>
                 <td>{{ $att->check_in ? \Carbon\Carbon::parse($att->check_in)->format('H:i') : '—' }}</td>
                 <td>{{ $att->check_out ? \Carbon\Carbon::parse($att->check_out)->format('H:i') : '—' }}</td>
