@@ -15,7 +15,7 @@
 <div class="form-section mb-2">
     <div class="form-section-header"><h3>Quick Check-In / Check-Out</h3></div>
     <div class="form-section-body">
-        @php $activeEmployees = \App\Models\Employee::where('status','active')->orderBy('full_name')->get(); @endphp
+        @php $activeEmployees = \App\Models\Employee::where('status','active')->orderBy('first_name')->orderBy('last_name')->get(); @endphp
         <div class="two-col">
             <form method="POST" action="{{ route('attendances.check-in') }}" class="d-flex" style="gap:10px;align-items:flex-end;">
                 @csrf
