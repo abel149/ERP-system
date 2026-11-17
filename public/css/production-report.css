@@ -1,0 +1,121 @@
+/* ============================================================
+   Daily production report (OF-BIP-PD-002)
+   ============================================================ */
+.manufacturing .pd-sheet {
+  background: #fff;
+  border: 1px solid #cfd8e2;
+  border-radius: 8px;
+  padding: 18px;
+  overflow-x: auto;
+  color: #14202e;
+}
+.manufacturing .pd-band {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  border: 1px solid #9fb0c0;
+  border-bottom: 0;
+  font-size: 12px;
+}
+.manufacturing .pd-band > div { padding: 5px 9px; border-right: 1px solid #c7d3dd; }
+.manufacturing .pd-band > div:last-child { border-right: 0; text-align: right; }
+.manufacturing .pd-band-center { text-align: center !important; font-weight: 600; }
+.manufacturing .pd-band-title .pd-band-center { font-weight: 700; }
+
+.manufacturing .pd-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  border: 1px solid #9fb0c0;
+  border-bottom: 0;
+  padding: 10px;
+}
+.manufacturing .pd-info-left { display: grid; gap: 4px; font-size: 12px; align-content: start; }
+.manufacturing .pd-info-left span { font-weight: 600; }
+.manufacturing .pd-info-right table { border-collapse: collapse; font-size: 12px; }
+.manufacturing .pd-info-right td { border: 1px solid #c7d3dd; padding: 3px 10px; }
+.manufacturing .pd-info-right td:last-child { text-align: right; font-weight: 600; min-width: 52px; }
+
+.manufacturing .pd-table-wrap { overflow-x: auto; border-top: 1px solid #9fb0c0; }
+.manufacturing .pd-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.manufacturing .pd-table th,
+.manufacturing .pd-table td { border: 1px solid #9fb0c0; padding: 5px 7px; vertical-align: top; }
+.manufacturing .pd-table th {
+  background: #f4f7fa;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  text-align: left;
+  white-space: nowrap;
+}
+.manufacturing .pd-table td.num,
+.manufacturing .pd-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.manufacturing .pd-table .pd-grand td { font-weight: 700; background: #f4f7fa; }
+.manufacturing .pd-table tbody tr:hover { background: #fbfdfd; }
+
+.manufacturing .pd-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  border: 1px solid #9fb0c0;
+  border-top: 0;
+  padding: 12px;
+}
+.manufacturing .pd-sign { display: grid; gap: 6px; font-size: 12px; }
+.manufacturing .pd-sign span { font-weight: 600; }
+.manufacturing .pd-sign-line { color: #64748b; margin: 6px 0; }
+
+.manufacturing .pd-totals { border-collapse: collapse; font-size: 12px; min-width: 360px; }
+.manufacturing .pd-totals th,
+.manufacturing .pd-totals td { border: 1px solid #9fb0c0; padding: 4px 10px; }
+.manufacturing .pd-totals th { background: #f4f7fa; font-weight: 600; text-align: left; }
+.manufacturing .pd-totals td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.manufacturing .pd-totals .strong td { font-weight: 700; }
+
+.manufacturing .pd-notes { margin-top: 10px; font-size: 12px; }
+
+/* ---- Entry form ---- */
+.manufacturing .pd-form-table td { padding: 6px; vertical-align: top; }
+.manufacturing .pd-form-table th { white-space: nowrap; }
+.manufacturing .pd-form-table input,
+.manufacturing .pd-form-table select {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid #cfd8e2;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+}
+.manufacturing .pd-form-table input[type="number"] { text-align: right; }
+.manufacturing .pd-form-table td:first-child { color: #64748b; font-size: 12px; }
+.manufacturing .pd-form-table .pd-calc {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  color: #475569;
+  padding-top: 13px;
+}
+.manufacturing .pd-form-table .emp-code { display: block; font-size: 10px; color: #64748b; margin-top: 2px; }
+.manufacturing .pd-form-table tfoot td { font-weight: 600; background: #f8fafb; }
+
+@media print {
+  .sidebar,
+  .topbar,
+  .sidebar-overlay,
+  .pd-actions,
+  .no-print,
+  .alert { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .manufacturing .page-content { padding: 0; max-width: none; }
+  .manufacturing .pd-sheet { border: 0; border-radius: 0; padding: 0; overflow: visible; }
+  .manufacturing .pd-table { font-size: 9px; }
+  .manufacturing .pd-table th,
+  .manufacturing .pd-table td { padding: 3px 4px; }
+  body { background: #fff; }
+  @page { size: A4 landscape; margin: 8mm; }
+}
