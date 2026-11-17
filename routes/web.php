@@ -10,6 +10,7 @@ use App\Http\Controllers\IssueController;
 use App\Http\Controllers\NonConformityController;
 use App\Http\Controllers\PackagingTypeController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\ProductionReportController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -116,6 +117,21 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,inventory,production')->group(function () {
         Route::get('productions/{production}', [ProductionController::class, 'show'])->whereNumber('production')->name('productions.show');
         Route::get('nc', [NonConformityController::class, 'index'])->name('nc.index');
+    });
+
+    // Daily production reports (PD report OF-BIP-PD-002)
+    Route::middleware('role:admin,production')->group(function () {
+        Route::get('production-reports/create', [ProductionReportController::class, 'create'])->name('production-reports.create');
+        Route::post('production-reports', [ProductionReportController::class, 'store'])->name('production-reports.store');
+        Route::get('production-reports/{productionReport}/edit', [ProductionReportController::class, 'edit'])->name('production-reports.edit');
+        Route::put('production-reports/{productionReport}', [ProductionReportController::class, 'update'])->name('production-reports.update');
+        Route::delete('production-reports/{productionReport}', [ProductionReportController::class, 'destroy'])->name('production-reports.destroy');
+    });
+
+    Route::middleware('role:admin,inventory,production')->group(function () {
+        Route::get('production-reports', [ProductionReportController::class, 'index'])->name('production-reports.index');
+        Route::get('production-reports/{productionReport}', [ProductionReportController::class, 'show'])
+            ->whereNumber('productionReport')->name('production-reports.show');
     });
 
     // ---------------------------------------------------------------- Procurement

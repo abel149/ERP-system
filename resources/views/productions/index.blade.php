@@ -7,9 +7,12 @@
         <h1 class="page-title">Production</h1>
         <p class="page-subtitle">Process issued materials, push pure output to finished goods and rework the NC.</p>
     </div>
-    @if(auth()->user()->hasRole('admin','production') && $pending->isNotEmpty())
-    <a href="{{ route('productions.create') }}" class="btn btn-primary">+ Submit results</a>
-    @endif
+    <div class="action-group">
+        <a href="{{ route('production-reports.index') }}" class="btn btn-secondary">PD report</a>
+        @if(auth()->user()->hasRole('admin','production') && $pending->isNotEmpty())
+        <a href="{{ route('productions.create') }}" class="btn btn-primary">+ Submit results</a>
+        @endif
+    </div>
 </div>
 
 <div class="metrics">
